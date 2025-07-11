@@ -1,0 +1,4 @@
+openai
+langfuse==2.51.4
+streamlit
+python-dotenv
