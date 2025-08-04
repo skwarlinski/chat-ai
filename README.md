@@ -1,19 +1,15 @@
 # ✨ Chat AI
----
 
 ## 📋 O projekcie
----
 
 Nowoczesna aplikacja czatu z AI zbudowana w Streamlit, która umożliwia prowadzenie rozmów z modelami OpenAI (GPT-4o, GPT-4o-mini) z pełnym zarządzaniem konwersacjami i monitorowaniem kosztów.
 
 
 ## 📱 Demo
----
 
 ![Chat AI Interface](others/chat-ai.png)
 
 ## 📁 Struktura projektu
----
 
 ```
 chat-ai/
@@ -73,7 +69,6 @@ Projekt implementuje kompleksowe podejście do tworzenia aplikacji konwersacyjne
 5. **Monitorowanie kosztów** - obliczanie kosztów w czasie rzeczywistym na podstawie użytych tokenów wejściowych i wyjściowych.
 
 ## 📬 Kontakt
----
 
 Masz pytania lub sugestie? Odezwij się!
 
@@ -82,6 +77,5 @@ Masz pytania lub sugestie? Odezwij się!
 - ✉️ Email: [skwarlinskihubert@gmail.com](mailto:skwarlinskihubert@gmail.com)
 
 ## 📜 Licencja
----
 
 Projekt dostępny na licencji **MIT** – możesz używać, kopiować i rozwijać aplikację na własne potrzeby.
