@@ -7,7 +7,7 @@ Nowoczesna aplikacja czatu z AI zbudowana w Streamlit, która umożliwia prowadz
 
 ## 📱 Demo
 
-![Chat AI Interface](others/chat-ai.png)
+![Chat AI Interface](others/chat.ai.png)
 
 ## 📁 Struktura projektu
 
