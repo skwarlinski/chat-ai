@@ -27,13 +27,68 @@ PRICING = model_pricings[st.session_state["model"]]
 
 load_dotenv()
 
-openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+def get_openai_client():
+    """Pobiera klienta OpenAI z kluczem API z session_state lub z .env"""
+    api_key = None
+    
+    # Spróbuj najpierw session_state
+    if "openai_api_key" in st.session_state and st.session_state["openai_api_key"]:
+        api_key = st.session_state["openai_api_key"]
+    # Następnie spróbuj plik .env
+    elif os.environ.get("OPENAI_API_KEY"):
+        api_key = os.environ["OPENAI_API_KEY"]
+    
+    if api_key:
+        return OpenAI(api_key=api_key)
+    else:
+        return None
+
+def show_api_key_input():
+    """Wyświetla formularz do wprowadzenia klucza API"""
+    st.title("🔑 Ustawienia klucza OpenAI API")
+    st.markdown("Do korzystania z aplikacji potrzebny jest klucz OpenAI API.")
+    
+    with st.form("api_key_form"):
+        st.markdown("### Opcje:")
+        st.markdown("1. **Wprowadź klucz tutaj** - klucz będzie zapisany tylko na czas sesji")
+        st.markdown("2. **Dodaj do pliku .env** - utwórz plik `.env` z zawartością: `OPENAI_API_KEY=twoj_klucz`")
+        
+        api_key_input = st.text_input(
+            "Klucz OpenAI API:",
+            type="password",
+            placeholder="sk-..."
+        )
+        
+        submitted = st.form_submit_button("💾 Zapisz klucz", type="primary")
+        
+        if submitted:
+            if api_key_input and api_key_input.startswith("sk-"):
+                st.session_state["openai_api_key"] = api_key_input
+                st.success("✅ Klucz API został pomyślnie zapisany!")
+                st.rerun()
+            elif api_key_input:
+                st.error("❌ Nieprawidłowy klucz API. Klucz powinien zaczynać się od 'sk-'")
+            else:
+                st.error("❌ Proszę wprowadzić klucz API")
+    
+    with st.expander("ℹ️ Jak uzyskać klucz OpenAI API?"):
+        st.markdown("""
+        1. Przejdź na [platform.openai.com](https://platform.openai.com)
+        2. Zaloguj się lub zarejestruj
+        3. Przejdź do sekcji API Keys
+        4. Utwórz nowy klucz API
+        5. Skopiuj klucz i wklej go powyżej
+        """)
 
 #
 # CHATBOT
 #
 @observe()
 def chatbot_reply(user_prompt, memory):
+    openai_client = get_openai_client()
+    if not openai_client:
+        return None
+        
     messages = [
         {
             "role": "system",
@@ -45,23 +100,27 @@ def chatbot_reply(user_prompt, memory):
 
     messages.append({"role": "user", "content": user_prompt})
 
-    response = openai_client.chat.completions.create(
-        model=st.session_state["model"],
-        messages=messages
-    )
-    usage = {}
-    if response.usage:
-        usage = {
-            "completion_tokens": response.usage.completion_tokens,
-            "prompt_tokens": response.usage.prompt_tokens,
-            "total_tokens": response.usage.total_tokens,
-        }
+    try:
+        response = openai_client.chat.completions.create(
+            model=st.session_state["model"],
+            messages=messages
+        )
+        usage = {}
+        if response.usage:
+            usage = {
+                "completion_tokens": response.usage.completion_tokens,
+                "prompt_tokens": response.usage.prompt_tokens,
+                "total_tokens": response.usage.total_tokens,
+            }
 
-    return {
-        "role": "assistant",
-        "content": response.choices[0].message.content,
-        "usage": usage,
-    }
+        return {
+            "role": "assistant",
+            "content": response.choices[0].message.content,
+            "usage": usage,
+        }
+    except Exception as e:
+        st.error(f"❌ Błąd przy wywołaniu OpenAI API: {str(e)}")
+        return None
 
 #
 # CONVERSATION HISTORY AND DATABASE
@@ -253,13 +312,22 @@ def confirm_delete_dialog(conversation_id, conversation_name):
 
 
 #
-# MAIN PROGRAM
+# GŁÓWNY PROGRAM
 #
+
+# Sprawdź czy dostępny jest klucz OpenAI API
+openai_client = get_openai_client()
+
+if not openai_client:
+    show_api_key_input()
+    st.stop()
+
+# Jeśli klucz API jest dostępny, kontynuuj normalną funkcjonalność
 load_current_conversation()
 
 st.title("✨ Chat AI")
 
-# Wyświetlanie wiadomości
+# Vyświetlanie wiadomości
 for message in st.session_state["messages"]:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -274,13 +342,27 @@ if prompt:
 
     with st.chat_message("assistant"):
         response = chatbot_reply(prompt, memory=st.session_state["messages"][-10:])
-        st.markdown(response["content"])
-
-    st.session_state["messages"].append({"role": "assistant", "content": response["content"], "usage": response["usage"]})
-    save_current_conversation_messages()
+        if response:
+            st.markdown(response["content"])
+            st.session_state["messages"].append({"role": "assistant", "content": response["content"], "usage": response["usage"]})
+            save_current_conversation_messages()
+        else:
+            st.error("❌ Nie udało się uzyskać odpowiedzi od AI. Sprawdź klucz API.")
 
 # Sidebar
 with st.sidebar:
+    # Informacje o kluczu API
+    with st.expander("🔑 Klucz API", expanded=False):
+        if "openai_api_key" in st.session_state:
+            st.success("✅ Klucz API z sesji")
+            if st.button("🗑️ Usuń klucz z sesji"):
+                del st.session_state["openai_api_key"]
+                st.rerun()
+        elif os.environ.get("OPENAI_API_KEY"):
+            st.success("✅ Klucz API z pliku .env")
+        else:
+            st.error("❌ Nie znaleziono klucza API")
+    
     # Obliczanie kosztów
     total_cost = 0
 
